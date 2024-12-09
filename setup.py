@@ -3,8 +3,7 @@
 from setuptools import setup
 
 install_requires = [
-    'boto3>=1.34.8',
-    'psycopg2>=2.9.6',  # Add psycopg2 for PostgreSQL support
+    'boto3>=1.34.8'
 ]
 
 setup(
