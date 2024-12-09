@@ -31,7 +31,7 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
         aws_secret_access_key=None,
         db_host="10.0.10.222",
         db_port=5432,
-        db_name="postres",
+        db_name="postgres",
         db_user="postgres",
         db_password="",
     ):
@@ -75,8 +75,8 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
         with self.pg_connection.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO nodestore_node (id, timestamp) 
-                VALUES (%s, %s) 
+                INSERT INTO nodestore_node (id, timestamp, data) 
+                VALUES (%s, %s, '') 
                 ON CONFLICT (id) DO NOTHING;
                 """,
                 (id, timestamp),
