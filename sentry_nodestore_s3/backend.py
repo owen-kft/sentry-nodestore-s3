@@ -129,9 +129,8 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
 
     def __delete_from_bucket(self, id: str) -> None:
         """Delete id from the database and S3."""
-        self.delete_id(id)
-
         timestamp = self.fetch_timestamp(id)
+        
         if not timestamp:
             raise ValueError(f"No timestamp found for ID {id}")
 
@@ -140,6 +139,7 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
             Key=key,
             Bucket=self.bucket_name,
         )
+        self.delete_id(id)
 
     def __read_from_bucket(self, id: str) -> bytes | None:
         """Fetch timestamp, construct S3 key, and read from S3."""
