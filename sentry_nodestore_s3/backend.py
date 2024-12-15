@@ -161,7 +161,7 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
 
             data = obj.get('Body').read()
             codec = self.compression_strategies.get(obj.get('ContentEncoding'))
-            print("node store data:", data)
+            # print("node store data:", data)
             return codec.decode(data) if codec else data
         except self.client.exceptions.NoSuchKey:
             return None
