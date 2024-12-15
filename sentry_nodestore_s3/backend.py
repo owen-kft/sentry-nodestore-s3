@@ -143,11 +143,16 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
 
     def __read_from_bucket(self, id: str) -> bytes | None:
         """Fetch timestamp, construct S3 key, and read from S3."""
+        
         timestamp = self.fetch_timestamp(id)
+        
+
         if not timestamp:
             raise ValueError(f"No timestamp found for ID {id}")
 
         key = self.__construct_s3_key(id, timestamp)
+
+        print("Reading from db, node store obj id:", id, "timestamp:", timestamp, "key:", key)
         try:
             obj = self.client.get_object(
                 Key=key,
@@ -156,6 +161,7 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
 
             data = obj.get('Body').read()
             codec = self.compression_strategies.get(obj.get('ContentEncoding'))
+            print("node store data:", data)
             return codec.decode(data) if codec else data
         except self.client.exceptions.NoSuchKey:
             return None
@@ -168,8 +174,8 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
         self._delete_cache_item(id)
 
     def _get_bytes(self, id: str) -> bytes | None:
-        if self.read_through:
-            return self.__read_from_bucket(id) or super()._get_bytes(id)
+        # if self.read_through:
+        #     return self.__read_from_bucket(id) or super()._get_bytes(id)
         return self.__read_from_bucket(id)
 
     def _set_bytes(self, id: str, data: Any, ttl: timedelta | None = None) -> None:
