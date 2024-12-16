@@ -71,7 +71,7 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
 
     def insert_id_and_timestamp(self, id: str):
         """Insert id and current timestamp into the database."""
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now()
         with self.pg_connection.cursor() as cursor:
             cursor.execute(
                 """
@@ -119,7 +119,7 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
                 data = compressed_data
                 content_encoding = self.compression
 
-        key = self.__construct_s3_key(id, datetime.utcnow())
+        key = self.__construct_s3_key(id, datetime.now())
         self.client.put_object(
             Key=key,
             Body=data,
