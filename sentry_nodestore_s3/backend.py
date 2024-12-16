@@ -9,6 +9,9 @@ from psycopg2.extras import RealDictCursor
 from sentry.utils.codecs import Codec, ZstdCodec
 from sentry.nodestore.base import NodeStorage
 from sentry.nodestore.django import DjangoNodeStorage
+import pytz
+
+local_tz=pytz.timezone("America/New_York")
 
 
 class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
@@ -98,7 +101,13 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
                 (id,),
             )
             result = cursor.fetchone()
-            return result["timestamp"] if result else None
+            if result:
+                timestamp = result["timestamp"]
+                local_timestamp = timestamp.astimezone(local_tz)
+                return local_timestamp
+            else:
+                return None
+            
 
     def __construct_s3_key(self, id: str, timestamp: datetime) -> str:
         """Construct S3 key using timestamp and id."""
