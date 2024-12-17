@@ -6,7 +6,8 @@ install_requires = [
     'boto3>=1.34.8',
     # 'psycopg2>=2.9.6',  # Add psycopg2 for PostgreSQL support
     'psycopg2-binary>=2.9.6', #If you're in a development or simpler setup, you can use psycopg2-binary instead of psycopg2 to avoid compilation issues,
-    "pytz"
+    "pytz",
+    "zstandard"
 ]
 
 setup(

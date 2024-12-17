@@ -11,6 +11,7 @@ from sentry.nodestore.base import NodeStorage
 from sentry.nodestore.django import DjangoNodeStorage
 import pytz
 import io
+import zstandard
 
 local_tz=pytz.timezone("America/New_York")
 
