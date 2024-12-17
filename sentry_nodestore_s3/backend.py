@@ -66,26 +66,29 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
             aws_secret_access_key=aws_secret_access_key,
         )
 
-        # self.pg_connection = connect(
-        #     host=db_host,
-        #     port=db_port,
-        #     database=db_name,
-        #     user=db_user,
-        #     password=db_password,
-        # )
-        # self.pg_connection.autocommit = True
+        self.pg_connection = connect(
+            host=db_host,
+            port=db_port,
+            database=db_name,
+            user=db_user,
+            password=db_password,
+        )
+        self.pg_connection.autocommit = True
+
         self.connection_pool = SimpleConnectionPool(
             minconn=2,  # Minimum connections in the pool
             maxconn=10,  # Maximum connections in the pool
-            host=kwargs.get("db_host", "10.0.10.222"),
-            port=kwargs.get("db_port", 5432),
-            database=kwargs.get("db_name", "postgres"),
-            user=kwargs.get("db_user", "postgres"),
-            password=kwargs.get("db_password", ""),
+            host="10.0.10.222",
+            port=5432,
+            database="postgres",
+            user="postgres",
+            password="",
         )
 
     def get_connection(self):
-        return self.connection_pool.getconn()
+        conn = self.connection_pool.getconn()
+        conn.autocommit = True  # Enable auto-commit here
+        return conn
 
     def release_connection(self, conn):
         self.connection_pool.putconn(conn)
