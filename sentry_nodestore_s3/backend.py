@@ -12,6 +12,7 @@ from sentry.nodestore.django import DjangoNodeStorage
 import pytz
 import io
 import zstandard
+from psycopg2.pool import SimpleConnectionPool
 
 local_tz=pytz.timezone("America/New_York")
 
@@ -65,50 +66,77 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
             aws_secret_access_key=aws_secret_access_key,
         )
 
-        self.pg_connection = connect(
-            host=db_host,
-            port=db_port,
-            database=db_name,
-            user=db_user,
-            password=db_password,
+        # self.pg_connection = connect(
+        #     host=db_host,
+        #     port=db_port,
+        #     database=db_name,
+        #     user=db_user,
+        #     password=db_password,
+        # )
+        # self.pg_connection.autocommit = True
+        self.connection_pool = SimpleConnectionPool(
+            minconn=2,  # Minimum connections in the pool
+            maxconn=10,  # Maximum connections in the pool
+            host=kwargs.get("db_host", "10.0.10.222"),
+            port=kwargs.get("db_port", 5432),
+            database=kwargs.get("db_name", "postgres"),
+            user=kwargs.get("db_user", "postgres"),
+            password=kwargs.get("db_password", ""),
         )
-        self.pg_connection.autocommit = True
+
+    def get_connection(self):
+        return self.connection_pool.getconn()
+
+    def release_connection(self, conn):
+        self.connection_pool.putconn(conn)
 
     def insert_id_and_timestamp(self, id: str):
         """Insert id and current timestamp into the database."""
         timestamp = datetime.now()
-        with self.pg_connection.cursor() as cursor:
-            cursor.execute(
-                """
-                INSERT INTO nodestore_node (id, timestamp, data) 
-                VALUES (%s, %s, '') 
-                ON CONFLICT (id) DO NOTHING;
-                """,
-                (id, timestamp),
-            )
+        pg_connection = self.get_connection()
+        try:
+            with pg_connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO nodestore_node (id, timestamp, data) 
+                    VALUES (%s, %s, '') 
+                    ON CONFLICT (id) DO NOTHING;
+                    """,
+                    (id, timestamp),
+                )
+        finally:
+            self.release_connection(pg_connection)
 
     def delete_id(self, id: str):
         """Delete id from the database."""
-        with self.pg_connection.cursor() as cursor:
-            cursor.execute(
-                "DELETE FROM nodestore_node WHERE id = %s;",
-                (id,),
-            )
+        pg_connection = self.get_connection()
+        try:
+            with pg_connection.cursor() as cursor:
+                cursor.execute(
+                    "DELETE FROM nodestore_node WHERE id = %s;",
+                    (id,),
+                )
+        finally:
+            self.release_connection(pg_connection)
 
     def fetch_timestamp(self, id: str) -> datetime | None:
         """Fetch timestamp for the given id."""
-        with self.pg_connection.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute(
-                "SELECT timestamp FROM nodestore_node WHERE id = %s;",
-                (id,),
-            )
-            result = cursor.fetchone()
-            if result:
-                timestamp = result["timestamp"]
-                local_timestamp = timestamp.astimezone(local_tz)
-                return local_timestamp
-            else:
-                return None
+        pg_connection = self.get_connection()
+        try:
+            with pg_connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    "SELECT timestamp FROM nodestore_node WHERE id = %s;",
+                    (id,),
+                )
+                result = cursor.fetchone()
+                if result:
+                    timestamp = result["timestamp"]
+                    local_timestamp = timestamp.astimezone(local_tz)
+                    return local_timestamp
+                else:
+                    return None
+        finally:
+            self.release_connection(pg_connection)
             
 
     def __construct_s3_key(self, id: str, timestamp: datetime) -> str:
