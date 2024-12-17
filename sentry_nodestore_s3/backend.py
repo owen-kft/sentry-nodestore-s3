@@ -130,7 +130,7 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
 
         timestamp = datetime.now(local_tz)
         key = self.__construct_s3_key(id, timestamp)
-        print("Writing to db, node store obj id:", id, "key:", key, timestamp)
+        # print("Writing to db, node store obj id:", id, "key:", key, timestamp)
 
         self.client.put_object(
             Key=key,
