@@ -10,6 +10,7 @@ from sentry.utils.codecs import Codec, ZstdCodec
 from sentry.nodestore.base import NodeStorage
 from sentry.nodestore.django import DjangoNodeStorage
 import pytz
+import io
 
 local_tz=pytz.timezone("America/New_York")
 
@@ -171,9 +172,15 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
             )
 
             data = obj.get('Body').read()
-            codec = self.compression_strategies.get(obj.get('ContentEncoding'))
-            # print("node store data:", data)
-            return codec.decode(data) if codec else data
+            decompressor = zstandard.ZstdDecompressor()
+            stream = io.BytesIO(data)
+            with decompressor.stream_reader(stream) as reader:
+                decompressed = reader.read()
+                return decompressed
+
+            # codec = self.compression_strategies.get(obj.get('ContentEncoding'))
+            # # print("node store data:", data)
+            # return codec.decode(data) if codec else data
         except self.client.exceptions.NoSuchKey:
             return None
 
