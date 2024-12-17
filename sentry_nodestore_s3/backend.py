@@ -128,7 +128,10 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
                 data = compressed_data
                 content_encoding = self.compression
 
-        key = self.__construct_s3_key(id, datetime.now())
+        timestamp = datetime.now()
+        key = self.__construct_s3_key(id, timestamp)
+        print("Writing to db, node store obj id:", id, "key:", key, timestamp)
+
         self.client.put_object(
             Key=key,
             Body=data,
