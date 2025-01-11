@@ -227,6 +227,9 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
         # if self.read_through:
         #     return self.__read_from_bucket(id) or super()._get_bytes(id)
         return self.__read_from_bucket(id)
+    
+    def _get_bytes_multi(self, id_list: list[str]) -> dict[str, bytes | None]:
+        return {id: self._get_bytes(id) for id in id_list}
 
     def _set_bytes(self, id: str, data: Any, ttl: timedelta | None = None) -> None:
         if self.write_through:
