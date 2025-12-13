@@ -1,5 +1,8 @@
 # Sentry Node Store S3
 
+> [!IMPORTANT]  
+> This repository has moved to https://github.com/getsentry/sentry-nodestore-s3 and will no longer be maintained here. Please update your references if needed.
+
 This is a Sentry extension that allows you to use a S3 compatible API object store as a storage backend for the `nodestore` in self-hosted Sentry setups.
 
 The ["Node Storage"](https://develop.sentry.dev/services/nodestore/) is a key/value store that is used to store data in Sentry. It's main usage is storing event data, but it can be used for other things as well.
