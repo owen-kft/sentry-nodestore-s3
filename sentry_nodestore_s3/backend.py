@@ -35,6 +35,8 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
         retry_attempts=3,
         aws_access_key_id=None,
         aws_secret_access_key=None,
+        ovh_s3_access_key_id=None,
+        ovh_s3_secret_access_key=None,
         db_host="10.0.10.222",
         db_port=5432,
         db_name="postgres",
@@ -64,6 +66,19 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
             endpoint_url=endpoint_url,
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
+        )
+        self.ovh_client = boto3.client(
+            config=Config(
+                retries={
+                    'mode': 'standard',
+                    'max_attempts': retry_attempts,
+                }
+            ),
+            region_name=region_name,
+            service_name='s3',
+            endpoint_url="https://s3.us-west-or.io.cloud.ovh.us",
+            aws_access_key_id=ovh_s3_access_key_id,
+            aws_secret_access_key=ovh_s3_secret_access_key,
         )
 
         self.pg_connection = connect(
@@ -164,7 +179,7 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
         timestamp = datetime.now(local_tz)
         key = self.__construct_s3_key(id, timestamp)
         # print("Writing to db, node store obj id:", id, "key:", key, timestamp)
-        self.client.put_object(
+        self.ovh_client.put_object(
             Key=key,
             Body=data,
             Bucket=self.bucket_name,
@@ -179,10 +194,25 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
             raise ValueError(f"No timestamp found for ID {id}")
 
         key = self.__construct_s3_key(id, timestamp)
-        self.client.delete_object(
-            Key=key,
-            Bucket=self.bucket_name,
-        )
+
+        try:
+            self.ovh_client.delete_object(
+                Key=key,
+                Bucket=self.bucket_name,
+            )
+        except self.ovh_client.exceptions.NoSuchKey:
+            pass
+
+        
+        # Delete from AWS S3 as well
+        try:
+            self.client.delete_object(
+                Key=key,
+                Bucket=self.bucket_name,
+            )
+        except self.client.exceptions.NoSuchKey:
+            pass
+
         self.delete_id(id)
 
     def __read_from_bucket(self, id: str) -> bytes | None:
@@ -197,6 +227,21 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
         key = self.__construct_s3_key(id, timestamp)
 
         print("Reading from db, node store obj id:", id, "timestamp:", timestamp, "key:", key)
+        # try to read from ovh s3 first, then from aws s3
+        try:
+            obj = self.ovh_client.get_object(
+                Key=key,
+                Bucket=self.bucket_name,
+            )
+            data = obj.get('Body').read()
+            decompressor = zstandard.ZstdDecompressor()
+            stream = io.BytesIO(data)
+            with decompressor.stream_reader(stream) as reader:
+                decompressed = reader.read()
+                return decompressed
+        except self.ovh_client.exceptions.NoSuchKey:
+            pass
+
         try:
             obj = self.client.get_object(
                 Key=key,
