@@ -31,7 +31,7 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
         bucket_name=None,
         region_name=None,
         bucket_path=None,
-        ovh_endpoint_url=None,
+        endpoint_url=None,
         retry_attempts=3,
         ovh_s3_access_key_id=None,
         ovh_s3_secret_access_key=None,
@@ -61,7 +61,7 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
             ),
             region_name=region_name,
             service_name='s3',
-            endpoint_url=ovh_endpoint_url,
+            endpoint_url=endpoint_url,
             aws_access_key_id=ovh_s3_access_key_id,
             aws_secret_access_key=ovh_s3_secret_access_key,
         )
