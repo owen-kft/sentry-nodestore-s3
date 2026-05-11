@@ -73,10 +73,10 @@ SENTRY_NODESTORE_OPTIONS = {
     "region_name": "nl-ams",
     "bucket_path": "nodestore",  # path inside the bucket, recommended to leave as is (removing it will make most object store web UI's grind to a halt accessing the bucket
     "bucket_name": "nodestore",
-    "endpoint_url": "https://s3.nl-ams.scw.cloud",
+    "ovh_endpoint_url": "https://s3.nl-ams.scw.cloud",
     "retry_attempts": 3,         # retry attempts for S3 operations
-    "aws_access_key_id": "",
-    "aws_secret_access_key": "",
+    "ovh_s3_access_key_id": "",
+    "ovh_s3_secret_access_key": "",
 }
 ```
 

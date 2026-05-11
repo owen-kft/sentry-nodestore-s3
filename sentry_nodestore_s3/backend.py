@@ -31,10 +31,8 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
         bucket_name=None,
         region_name=None,
         bucket_path=None,
-        endpoint_url=None,
+        ovh_endpoint_url=None,
         retry_attempts=3,
-        aws_access_key_id=None,
-        aws_secret_access_key=None,
         ovh_s3_access_key_id=None,
         ovh_s3_secret_access_key=None,
         db_host="10.0.10.222",
@@ -54,19 +52,6 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
 
         self.bucket_name = bucket_name
         self.bucket_path = bucket_path
-        self.client = boto3.client(
-            config=Config(
-                retries={
-                    'mode': 'standard',
-                    'max_attempts': retry_attempts,
-                }
-            ),
-            region_name=region_name,
-            service_name='s3',
-            endpoint_url=endpoint_url,
-            aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key,
-        )
         self.ovh_client = boto3.client(
             config=Config(
                 retries={
@@ -76,7 +61,7 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
             ),
             region_name=region_name,
             service_name='s3',
-            endpoint_url="https://s3.us-west-or.io.cloud.ovh.us",
+            endpoint_url=ovh_endpoint_url,
             aws_access_key_id=ovh_s3_access_key_id,
             aws_secret_access_key=ovh_s3_secret_access_key,
         )
@@ -203,15 +188,6 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
         except self.ovh_client.exceptions.NoSuchKey:
             pass
 
-        
-        # Delete from AWS S3 as well
-        try:
-            self.client.delete_object(
-                Key=key,
-                Bucket=self.bucket_name,
-            )
-        except self.client.exceptions.NoSuchKey:
-            pass
 
         self.delete_id(id)
 
@@ -240,25 +216,6 @@ class S3PassthroughDjangoNodeStorage(DjangoNodeStorage, NodeStorage):
                 decompressed = reader.read()
                 return decompressed
         except self.ovh_client.exceptions.NoSuchKey:
-            pass
-
-        try:
-            obj = self.client.get_object(
-                Key=key,
-                Bucket=self.bucket_name,
-            )
-
-            data = obj.get('Body').read()
-            decompressor = zstandard.ZstdDecompressor()
-            stream = io.BytesIO(data)
-            with decompressor.stream_reader(stream) as reader:
-                decompressed = reader.read()
-                return decompressed
-
-            # codec = self.compression_strategies.get(obj.get('ContentEncoding'))
-            # # print("node store data:", data)
-            # return codec.decode(data) if codec else data
-        except self.client.exceptions.NoSuchKey:
             return None
 
     # Override existing methods to include PostgreSQL logic
